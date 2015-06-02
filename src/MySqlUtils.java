@@ -8,8 +8,10 @@ import java.sql.SQLException;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
-import org.json.simple.*;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.Statement;
@@ -17,7 +19,6 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import org.json.simple.parser.ParseException;
 
 /**
  * Hello world!
@@ -44,7 +45,7 @@ public class MySqlUtils {
         connection();
         String host = "jdbc:mysql://localhost:3306/peekaboo";
         String username = "root";
-        String password = "";
+        String password = "happyhours";
         try {
             connect = (Connection) DriverManager.getConnection(host, username,
                     password);
@@ -238,6 +239,32 @@ public class MySqlUtils {
         }
 
     }
+    public static void handleUpdateRegId(JSONObject obj) throws SQLException {
+    	String username = (String) obj.get("Username");
+    	String regId = (String) obj.get("RegId");
+    	Statement statement = null;
+    	if (username != null) {
+            try {
+                statement = (Statement) connect.createStatement();
+                String sql = "UPDATE Users SET reg_id='" + regId
+                        + "' WHERE user_name='" + username + "';";
+
+                statement.executeUpdate(sql);
+            } catch (SQLException se) {
+                se.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (statement != null) {
+                    statement.close();
+                }
+            }
+        }
+    	
+    	
+    	
+    	
+    }
 
     public static void handleGetLocation(JSONObject obj) throws SQLException {
         String username = (String) obj.get("Friend");
@@ -259,7 +286,7 @@ public class MySqlUtils {
                         lastUpd = result.getString("last_updated");
                     }
                     sqlText = "{\"Response\":{\"Friend\":\"" + username +"\",\"Latitude\":\"" + lat + "\",\"Longitude\":\"" + lon + "\",\"LastUpdated\":\"" + lastUpd + "\"},\"ResponseType\":\"GetLocation\"}";
-                    System.out.println(lat + " " + lon);
+                    //System.out.println(lat + " " + lon);
                 } finally {
                     if (result != null)
                         result.close();
@@ -351,6 +378,13 @@ class MyHandler implements HttpHandler {
                                 obj = (JSONObject) request;
                                 MySqlUtils.handleTrackAll(obj);
                             }
+                        }else if(type !=null && type.equals("UpdateRegId")){
+                        	request = obj.get("Request");
+                            if (request != null
+                                    && request instanceof JSONObject) {
+                                obj = (JSONObject) request;
+                                MySqlUtils.handleUpdateRegId(obj);
+                            }
                         }
                     }
                 }
@@ -372,3 +406,5 @@ class MyHandler implements HttpHandler {
     }
 
 }
+//key=AIzaSyDvk8_GLWTn-u_GrlvBkMHhkPR8XLtabEg
+//Project ID - 214619967549
