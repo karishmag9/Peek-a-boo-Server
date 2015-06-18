@@ -1,13 +1,27 @@
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.protocol.HTTP;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -141,6 +155,7 @@ public class MySqlUtils {
     }
 
     public static void handleLocationUpdate(JSONObject obj) throws SQLException {
+    	
         String username = (String)obj.get("Username");
         Statement statement = null;
         if (username != null) {
@@ -298,6 +313,64 @@ public class MySqlUtils {
         }
     }
 
+    public static void handleLiveTracking(JSONObject obj) throws SQLException, ClientProtocolException, IOException 
+    {
+    	
+    	String username = (String) obj.get("Username");
+    	String friend = (String) obj.get("Friend");
+    	/*Fetch from DB if location updates allowed , reID */
+    	MySqlUtils.triggerLocationUpdates("blah","blah2","blah3");
+    	
+    	
+    }
+    
+    public static void triggerLocationUpdates(String regId,String uname,String time) throws ClientProtocolException, IOException
+    {
+    	String url = "https://android.googleapis.com/gcm/send";
+    	 
+    	HttpClient client = HttpClientBuilder.create().build();
+    	HttpPost post = new HttpPost(url);
+    	
+    	
+    	// add headers
+    	post.setHeader("Content-Type","application/json");
+    	post.setHeader("Authorization","key=AIzaSyDvk8_GLWTn-u_GrlvBkMHhkPR8XLtabEg");
+    	
+
+    	JSONArray jsonArr = new JSONArray();
+    	
+    	//Hard Coded Stuff
+    	regId="APA91bEg8w7wjckdq3Bzwo4x5iaXPMqmw62C_sJ23NxzoVksSnqwUiBpU5Axplj2Ca33ttBRsU-gAvI7ikBJPeoMe-Qt3eoJLQrhiK5Sb_Z63PLee9D6tqKMgGWVoHNYJiNwva-L983WhdGRd2qXSrJ-cgdTK21fxg";
+    	uname = "gulati.karishma";
+    	time="blahTIME";
+    	
+    	jsonArr.add(regId);
+    	JSONObject data = new JSONObject();
+    	data.put("uname",uname);
+    	data.put("time",time);
+    	data.put("type","trigger");
+    	
+    	JSONObject jsonObj = new JSONObject();
+    	jsonObj.put("registration_ids", jsonArr);
+    	jsonObj.put("data", data);
+    	
+    	StringEntity entity = new StringEntity(jsonObj.toString(),"UTF-8");
+    	
+    	post.setEntity(entity);
+    	HttpResponse response = client.execute(post);
+    	System.out.println("Response Code : " 
+                    + response.getStatusLine().getStatusCode());
+     
+    	BufferedReader rd = new BufferedReader(
+    	        new InputStreamReader(response.getEntity().getContent()));
+     
+    	StringBuffer result = new StringBuffer();
+    	String line = "";
+    	while ((line = rd.readLine()) != null) {
+    		result.append(line);
+    	}
+    }
+    
     public static void main(String[] args) throws IOException, SQLException {
         ConnectionToMySql();
         InetSocketAddress addr = new InetSocketAddress(8080);
@@ -384,6 +457,14 @@ class MyHandler implements HttpHandler {
                                     && request instanceof JSONObject) {
                                 obj = (JSONObject) request;
                                 MySqlUtils.handleUpdateRegId(obj);
+                            }
+                        }
+                        else if(type !=null && type.equals("LiveTracking")){
+                        	request = obj.get("Request");
+                            if (request != null
+                                    && request instanceof JSONObject) {
+                                obj = (JSONObject) request;
+                                MySqlUtils.handleLiveTracking(obj);
                             }
                         }
                     }
